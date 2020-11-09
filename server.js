@@ -11,13 +11,13 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 
 app.get('/location', handleLocation);
-app.get('/weather', handleWeather);
+// app.get('/weather', handleWeather);
 
 function handleLocation(request, response) {
   try {
     let geoData = require('data/location.json');
     let city = request.query.city;
-    let locationData = newLocation(city, geoData);
+    let locationData = new Location(city, geoData);
     response.send(locationData);
   } catch (error) {
     console.error(error);
@@ -31,4 +31,6 @@ function Location(city, geoData) {
   this.longitude = geoData[0].lon;
 }
 
-
+app.listen(PORT, () => {
+  console.log(`server up: ${PORT}`);
+})
