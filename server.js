@@ -15,7 +15,7 @@ app.get('/location', handleLocation);
 
 function handleLocation(request, response) {
   try {
-    let geoData = require('data/location.json');
+    let geoData = require('./data/location.json');
     let city = request.query.city;
     let locationData = new Location(city, geoData);
     response.send(locationData);
