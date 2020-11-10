@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 
 app.get('/location', handleLocation);
-// app.get('/weather', handleWeather);
+app.get('/weather', handleWeather);
 
 function handleLocation(request, response) {
   try {
@@ -30,6 +30,35 @@ function Location(city, geoData) {
   this.latitude = geoData[0].lat;
   this.longitude = geoData[0].lon;
 }
+
+function handleWeather(request, response) {
+  try {
+    let weatherData = require('./data/weather.json');
+    let dateWeather = [];
+    weatherData.data.forEach((value) => {
+      dateWeather.push(new Forecast(value))
+      console.log(dateWeather);
+    })
+    response.send(dateWeather);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function Forecast(value) {
+
+  this.time = value.valid_date;
+  this.forecast = value.weather.description;
+
+}
+
+
+app.get('/location', (request, response) => {
+  throw new Error({ status: 500, responseText: 'Sorry, something went wrong' });
+
+})
+// function for errors from ANY API
+// status of 500 with error message
 
 app.listen(PORT, () => {
   console.log(`server up: ${PORT}`);
