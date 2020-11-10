@@ -59,13 +59,40 @@ We are building this application so that users can search a city by name and in 
 ```
 
 ```markdown
-Number and name of feature: ________________________________
+Number and name of feature:
+- #2. Locations: As a user of City Explorer, I want to enter the name of a location so that I can see data about the area of interest to me.
 
-Estimate of time needed to complete: _____
+Estimate of time needed to complete: 1hr
 
-Start time: _____
+Start time: 2:50PM
 
-Finish time: _____
+Finish time: 3:20PM
 
-Actual time needed to complete: _____
+Actual time needed to complete: 30MINS
+```
+
+```markdown
+Number and name of feature:
+- #3. Weather: As a user, I want to request current weather information so that I can learn more about the typical weather patterns in the location I had entered.
+
+Estimate of time needed to complete: 2HRS
+
+Start time: 3:45PM
+
+Finish time: 5:30PM
+
+Actual time needed to complete: 1HR 45MIN
+```
+
+```markdown
+Number and name of feature:
+- #4. Errors: As a user, I want clear messages if something goes wrong so I know if I need to make any changes or try again in a different manner.
+
+Estimate of time needed to complete: 2HRS
+
+Start time: 3:45PM
+
+Finish time: 5:30PM
+
+Actual time needed to complete: 1HR 45MIN
 ```
