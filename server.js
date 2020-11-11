@@ -3,63 +3,103 @@
 require('dotenv').config();
 
 const express = require('express');
+const superagent = require('superagent');
+const dotenv = require('dotenv');
 const cors = require('cors');
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+//using keys stored in kept in .env
+const GEO_API_KEY = process.env.GEO_API_KEY;
+const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
+// const TRAIL_API_KEY = process.env.TRAIL_API_KEY;
+
 
 app.use(cors());
 
 app.get('/location', handleLocation);
 app.get('/weather', handleWeather);
+// app.get('/trails', handleTrails);
+
+// CATCH ALL
+app.get('*', notFoundHandler);
+
+// :::::::::::: HANDLERS ::::::::::::::
 
 function handleLocation(request, response) {
   try {
-    let geoData = require('./data/location.json');
     let city = request.query.city;
-    let locationData = new Location(city, geoData);
-    response.send(locationData);
+    let url = `https://us1.locationiq.com/v1/search.php?key=${GEO_API_KEY}&q=${city}&format=json&limit=1`;
+    let locations = {};
+
+    superagent.get(url)
+      .then(data => {
+        let locationInfo = data.body[0];
+        // console.log(locationInfo);
+        let locationObj = new Location(city, locationInfo);
+        // console.log(locationObj);
+        locations[url] = locationObj
+
+        response.json(locationObj);
+      });
   } catch (error) {
-    console.error(error);
+    console.log('error! it did not work');
   }
 }
 
-function Location(city, geoData) {
-  this.search_query = city;
-  this.formatted_query = geoData[0].display_name;
-  this.latitude = geoData[0].lat;
-  this.longitude = geoData[0].lon;
-}
+// ::::::::: HANDLE WEATHER :::::::::::
 
 function handleWeather(request, response) {
   try {
-    let weatherData = require('./data/weather.json');
-    let dateWeather = [];
-    weatherData.data.forEach((value) => {
-      dateWeather.push(new Forecast(value))
-      console.log(dateWeather);
-    })
-    response.send(dateWeather);
+    let city = request.query.city;
+    let url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${city}&key=${WEATHER_API_KEY}&days=8`;
+    // let weather = {};
+
+    superagent.get(url)
+      .then(weatherData => {
+        let daysWeather = weatherData;
+        console.log(daysWeather);
+        // daysWeather.map(dayData =>
+        //   new Forecast(dayData));
+        // weather[url] = daysWeather;
+        // response.json(daysWeather);
+      });
   } catch (error) {
-    console.error(error);
+    console.log('error! it did not work');
   }
+
 }
 
-function Forecast(value) {
+
+
+
+// ADD TRAIL HANDLER HERE
+
+// ::::::::::: CONSTRUCTORS ::::::::::::
+
+function Location(city, locationInfo) {
+  this.search_query = city;
+  this.formatted_query = locationInfo.display_name;
+  this.latitude = locationInfo.lat;
+  this.longitude = locationInfo.lon;
+}
+
+function Forecast(dayData) {
 
   this.time = value.valid_date;
   this.forecast = value.weather.description;
 
 }
 
+// TRAIL CONSTRUCTOR HERE
 
-app.get('/location', (request, response) => {
-  throw new Error({ status: 500, responseText: 'Sorry, something went wrong' });
-
-})
-// function for errors from ANY API
-// status of 500 with error message
+function notFoundHandler(request, response) {
+  response.status(404).send('not found');
+}
 
 app.listen(PORT, () => {
   console.log(`server up: ${PORT}`);
-})
+});
+
