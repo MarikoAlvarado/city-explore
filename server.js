@@ -44,10 +44,11 @@ function handleLocation(request, response) {
     client.query('SELECT * FROM location WHERE city = $1;', [city])
       .then(info => {
         console.log(info.rows)
-        let notExist = info.rows.forEach(storedObj => storedObj.city !== city);
-
-        console.log('not exist: ', notExist);
-        if (notExist === true) {
+        let result = info.rows.every(storedObj => {
+          (storedObj.city !== city);
+        });
+        console.log(`result is ${result}`);
+        if (`${result}` === 'true') {
 
           let locations = {};
           // ADD INFO TO DB USING SQL
@@ -64,7 +65,7 @@ function handleLocation(request, response) {
 
               client.query(SQL, values)
                 .then(result => {
-                  // console.log('this is newly stored object in return:', result.rows);
+                  console.log('this is newly stored object in return:', result.rows);
                   // result.status(201).json(result.rows);
                 })
 
@@ -72,6 +73,7 @@ function handleLocation(request, response) {
             });
         } else {
           response.json(info.rows);
+          console.log('this was stored');
         }
       });
 
