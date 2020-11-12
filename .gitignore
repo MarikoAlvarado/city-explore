@@ -59,10 +59,10 @@ typings/
 .yarn-integrity
 
 # dotenv environment variables file
-/.env
+.env
 
-/.env.example
+.env.example
 
-/.env.local
+.env.local
 
-/.env.staging
+.env.staging
