@@ -10,27 +10,20 @@ const cors = require('cors');
 // const seqlFile = require('./schema.sql');
 const client = new pg.Client(process.env.DATABASE_URL) //my app is a client to my db, should be private and unique to wherever it is deployed to (heroku)
 
-//BUILD A ROUTE TO SAVE REQUEST
-
-// BUILD A ROUTE TO RETRIEVE
-
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-//using keys stored in kept in .env
 const GEO_API_KEY = process.env.GEO_API_KEY;
-// const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
-// const TRAIL_API_KEY = process.env.TRAIL_API_KEY;
+const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
+const TRAIL_API_KEY = process.env.TRAIL_API_KEY;
 
 
 app.use(cors());
 
 app.get('/location', handleLocation);
-// app.get('/weather', handleWeather);
-// app.get('/trails', handleTrails);
-
-// CATCH ALL
+app.get('/weather', handleWeather);
+app.get('/trails', handleTrails);
 app.get('*', notFoundHandler);
 
 // :::::::::::: HANDLERS ::::::::::::::
@@ -40,79 +33,76 @@ function handleLocation(request, response) {
 
     let city = request.query.city;
     let url = `https://us1.locationiq.com/v1/search.php?key=${GEO_API_KEY}&q=${city}&format=json&limit=1`;
-
-    client.query('SELECT * FROM location WHERE city = $1;', [city])
-      .then(info => {
-        console.log(info.rows)
-        let result = info.rows.every(storedObj => {
-          (storedObj.city !== city);
-        });
-        console.log(`result is ${result}`);
-        if (`${result}` === 'true') {
-
-          let locations = {};
-          // ADD INFO TO DB USING SQL
-          // RETRIEVE INFO FROM DB USING SQL
+    client.query('SELECT * FROM location WHERE search_query = $1;', [city])
+      .then(storedObj => {
+        let list = storedObj.rows;
+        if (list.length > 0) {
+          return response.send(list[0]);
+        } else {
           superagent.get(url)
             .then(data => {
               let locationInfo = data.body[0];
-              // console.log(locationInfo);
-              let locationObj = new Location(city, locationInfo);
-              // console.log(locationObj);
-              locations[url] = locationObj
-              let SQL = 'INSERT INTO location (city, city_info, lat, lon) VALUES ($1, $2, $3, $4) RETURNING *;';
-              let values = [locationObj.search_query, locationObj.formatted_query, locationObj.latitude, locationObj.longitude];
+              let locationObj = new Location(city, locationInfo)
+              return locationObj
+            })
+            .then(store => {
+              let SQL = 'INSERT INTO location (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4) RETURNING *;';
+              let values = [store.search_query, store.formatted_query, store.latitude, store.longitude];
 
               client.query(SQL, values)
-                .then(result => {
-                  console.log('this is newly stored object in return:', result.rows);
-                  // result.status(201).json(result.rows);
-                })
-
-              response.json(locationObj);
+              response.json(store);
             });
-        } else {
-          response.json(info.rows);
-          console.log('this was stored');
         }
-      });
-
+      })
   } catch (error) {
     console.log('error! it did not work');
   }
 }
-
-// ::::::::: HANDLE WEATHER :::::::::::
-
-// :::::::::: FIX THIS SHIT!!! ::::::::::::::::::
+// :::::::::::::::::::: HANDLE WEATHER ::::::::::::::::::::::::
 
 function handleWeather(request, response) {
   try {
-    let city = request.query.city;
-    let url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${city}&key=${WEATHER_API_KEY}&days=8`;
-    // let weather = {};
 
-    superagent.get(url)
+    let cityWeather = request.query.search_query;
+    console.log(cityWeather);
+    let weatherUrl = `https://api.weatherbit.io/v2.0/forecast/daily?city=${cityWeather}&key=${WEATHER_API_KEY}&days=8`;
+    superagent.get(weatherUrl)
       .then(weatherData => {
-        let daysWeather = weatherData;
-        console.log(daysWeather);
-        // daysWeather.map(dayData =>
-        //   new Forecast(dayData));
-        // weather[url] = daysWeather;
-        response.json(daysWeather);
-      });
-  } catch (error) {
-    console.log('error! it did not work');
-  }
+        let weatherInfo = weatherData.body.data;
+        let weatherInfoData = weatherInfo.map(info => {
+          // console.log('this is just data, no city ', info.weather);
+          return new Forecast(info)
+        })
+        return response.status(200).json(weatherInfoData);
+      })
 
+  } catch (error) {
+    response.status(500).send('error! it did not work');
+  }
 }
 
+function handleTrails(request, response) {
+  try {
 
+    let trailsLat = request.query.latitude;
+    let trailsLon = request.query.longitude;
+    let trailsUrl = `https://www.hikingproject.com/data/get-trails?lat=${trailsLat}&lon=${trailsLon}&key=${TRAIL_API_KEY}&maxRusults=1`;
+    superagent.get(trailsUrl)
+      .then(trailsData => {
+        // console.log('92 ', trailsData.body.trails);
+        let trailsInfo = trailsData.body.trails;
+        let trailsInfoData = trailsInfo.map(info => {
+          console.log('95 ', trailsInfo);
+          return new Trails(info)
+        })
+        return response.status(200).json(trailsInfoData);
+      })
 
-
-// ADD TRAIL HANDLER HERE
-
-// ::::::::::: CONSTRUCTORS ::::::::::::
+  } catch (error) {
+    response.status(500).send('error! it did not work');
+  }
+}
+// :::::::::::::::::::::::::::: CONSTRUCTORS ::::::::::::::::::::::::::::::::::::::
 
 function Location(city, locationInfo) {
   this.search_query = city;
@@ -121,15 +111,23 @@ function Location(city, locationInfo) {
   this.longitude = locationInfo.lon;
 }
 
-function Forecast(dayData) {
-
-  this.time = value.valid_date;
-  this.forecast = value.weather.description;
-
+function Forecast(weatherInfo) {
+  this.forecast = weatherInfo.weather.description;
+  this.time = weatherInfo.datetime;
 }
 
-// TRAIL CONSTRUCTOR HERE
-
+function Trails(info) {
+  this.name = info.name;
+  this.location = info.location;
+  this.length = info.length;
+  this.stars = info.stars;
+  this.star_votes = info.starVotes;
+  this.summary = info.summary;
+  this.trail_url = info.url;
+  this.conditions = info.conditionStatus;
+  this.condition_date = info.conditionDate;
+  this.condition_time = info.conditionDetails;
+}
 function notFoundHandler(request, response) {
   response.status(404).send('not found');
 }
@@ -140,4 +138,3 @@ client.connect()
       console.log(`server is up! ${PORT}`);
     });
   })
-
